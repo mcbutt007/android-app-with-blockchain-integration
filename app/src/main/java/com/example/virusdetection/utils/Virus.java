@@ -1,8 +1,8 @@
 package com.example.virusdetection.utils;
 
-import java.math.BigInteger;
+import java.security.PublicKey;
 
 public class Virus {
-    public BigInteger publicKey;
-    public String virusSignature;
+    CustomECKeySpec publicKey;
+    String virusSignature;
 }

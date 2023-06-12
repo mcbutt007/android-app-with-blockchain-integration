@@ -55,9 +55,8 @@ public class NotificationsFragment extends Fragment {
                             System.out.println(Client.num);
                             if (Client.num < value) return;
                             Client.num -= value;
-                            ECKeyPair key = Client.getKey(activity);
+                            KeyPair key = Client.getKey(activity);
                             Boolean b = Client.transfer(key, receiverPublicKey, value);
-                            //TODO: switch to home view
                         }
                         catch (Exception e)
                         {

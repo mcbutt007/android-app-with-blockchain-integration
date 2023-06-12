@@ -22,9 +22,6 @@ import com.example.virusdetection.utils.Tools.*;
 import com.example.virusdetection.utils.Virus;
 import com.google.gson.Gson;
 
-import org.web3j.crypto.ECKeyPair;
-import org.web3j.crypto.Keys;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
@@ -79,15 +76,15 @@ public class HomeFragment extends Fragment {
                         if (rand_int > 1907) return;
                         int virusRandom = rand.nextInt(); 
                         
-                        ECKeyPair key = Client.getKey(activity);
+                        KeyPair key = Client.getKey(activity);
 
                         Virus virus = new Virus();
-                        virus.publicKey = key.getPublicKey();
+                        virus.publicKey = CustomECKeySpec.getPublicKeySpec(key);
                         virus.virusSignature = String.valueOf(virusRandom);
 
                         Boolean b = Client.addVirus(key, virus);
-                        Client.num += 1;
-                        //if (!b) return;
+                        //Client.num += 1;
+                        if (!b) return;
 
                         int coins = Client.num;
                         // write coins to UI in UI thread
