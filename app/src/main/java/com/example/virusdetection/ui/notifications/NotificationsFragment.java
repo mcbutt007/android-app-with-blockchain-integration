@@ -12,14 +12,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.navigation.Navigation;
 
 import com.example.virusdetection.databinding.FragmentNotificationsBinding;
-import com.example.virusdetection.ui.home.Job;
 import com.example.virusdetection.utils.Client;
 
-import org.web3j.crypto.ECKeyPair;
-
+import java.security.KeyPair;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -43,29 +40,24 @@ public class NotificationsFragment extends Fragment {
         Button send_btn = binding.sendBtn;
         Activity activity = this.getActivity();
 
-        send_btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            String receiverPublicKey = address.getText().toString();
-                            long value = Long.parseLong(send_value.getText().toString());
-                            System.out.println(Client.num);
-                            if (Client.num < value) return;
-                            Client.num -= value;
-                            KeyPair key = Client.getKey(activity);
-                            Boolean b = Client.transfer(key, receiverPublicKey, value);
-                        }
-                        catch (Exception e)
-                        {
-                            System.err.println(e);
-                        }
-                    }
-                });
+        send_btn.setOnClickListener(v -> executor.execute(() -> {
+            try {
+                String receiverPublicKey = address.getText().toString();
+                long value = Long.parseLong(send_value.getText().toString());
+                System.out.println(Client.num);
+                if (Client.num < value) return;
+                Client.num -= value;
+                assert activity != null;
+                KeyPair key = Client.getKey(activity);
+                Boolean b = Client.transfer(key, receiverPublicKey, value);
+                System.out.println(b);
+                System.out.println("after transfer");
             }
-        });
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        }));
 
         notificationsViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
         return root;

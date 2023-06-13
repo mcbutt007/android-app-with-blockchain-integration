@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.virusdetection.R;
 import com.example.virusdetection.databinding.FragmentHomeBinding;
 import com.example.virusdetection.utils.Client;
+import com.example.virusdetection.utils.CustomECKeySpec;
 import com.example.virusdetection.utils.Tools;
 import com.example.virusdetection.utils.Tools.*;
 import com.example.virusdetection.utils.Virus;
@@ -25,9 +26,11 @@ import com.google.gson.Gson;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -54,13 +57,18 @@ public class HomeFragment extends Fragment {
             @Override
             public void run() {
 
-                ECKeyPair key = Client.getKey(activity);
-                int coins = 0;
-                coins = Client.num;
-                // write address to UI in UI thread
-                activity.runOnUiThread(new JobBigInt(valueKey, key.getPrivateKey()));
-                // write coins to UI in UI thread
-                activity.runOnUiThread(new Job(valueTextView, coins));
+                KeyPair key = null;
+                try {
+                    key = Client.getKey(activity);
+
+                    int coins = Client.fetch(key, false);
+                    // write address to UI in UI thread
+                    activity.runOnUiThread(new JobBigInt(valueKey, new BigInteger(key.getPublic().getEncoded())));
+                    // write coins to UI in UI thread
+                    activity.runOnUiThread(new Job(valueTextView, coins));
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
 
         });
@@ -73,22 +81,29 @@ public class HomeFragment extends Fragment {
                     public void run() {
                         SecureRandom rand = new SecureRandom();
                         int rand_int = rand.nextInt(10000);
+                        System.out.println(rand_int);
                         if (rand_int > 1907) return;
-                        int virusRandom = rand.nextInt(); 
-                        
-                        KeyPair key = Client.getKey(activity);
 
-                        Virus virus = new Virus();
-                        virus.publicKey = CustomECKeySpec.getPublicKeySpec(key);
-                        virus.virusSignature = String.valueOf(virusRandom);
+                        int virusRandom = rand.nextInt();
 
-                        Boolean b = Client.addVirus(key, virus);
-                        //Client.num += 1;
-                        if (!b) return;
+                        KeyPair key = null;
+                        try {
+                            key = Client.getKey(activity);
 
-                        int coins = Client.num;
-                        // write coins to UI in UI thread
-                        activity.runOnUiThread(new Job(valueTextView, coins));
+                            Virus virus = new Virus();
+                            virus.publicKey = CustomECKeySpec.getPublicKeySpec(key);
+                            virus.virusSignature = String.valueOf(virusRandom);
+
+                            Boolean b = Client.addVirus(key, virus);
+
+                            // if (!b) return;
+                            //Client.num += 1;
+                            int coins = Client.fetch(key, false);
+                            // write coins to UI in UI thread
+                            activity.runOnUiThread(new Job(valueTextView, coins));
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
                     }
         
                 });

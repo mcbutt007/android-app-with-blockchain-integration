@@ -33,7 +33,7 @@ import java.security.spec.X509EncodedKeySpec;
 
 public class Client {
     public static final String SERVER_ADDRESS = "0.tcp.ap.ngrok.io";
-    public static final int SERVER_PORT = 12592;
+    public static final int SERVER_PORT = 10489;
     
     public static SocketFactory sf = (SocketFactory)SocketFactory.getDefault();
     public static Socket client;
@@ -42,33 +42,46 @@ public class Client {
 
     public static int num = 0;
 
-    public static KeyPair getKey(Activity context) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    public static KeyPair getKey(Activity context) throws Exception {
         // get key
+        Gson gson = new Gson();
         SharedPreferences sharedPref = context.getPreferences(Context.MODE_PRIVATE);
         String json = sharedPref.getString(context.getString(R.string.saved_key), "");
-        Gson gson = new Gson();
-        if (json.equals("")){
+        //String json = "";
+        if (json.equals("")) {
             KeyPairGenerator keygen = KeyPairGenerator.getInstance("EC");
             ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
             keygen.initialize(ecSpec);
             KeyPair keyPair = keygen.generateKeyPair();
-            //test.createNewAddress(keyPair);
+            if (!Client.createNewAddress(keyPair)) throw new Exception("Error creating keys");
             String keyPairString = gson.toJson(new CustomECKeySpec(keyPair), CustomECKeySpec.class);
             SharedPreferences.Editor editor = sharedPref.edit();
             editor.putString(context.getString(R.string.saved_key), keyPairString);
             editor.apply();
             return keyPair;
         }
-        KeyFactory keyFactory = KeyFactory.getInstance("EC");
-        String saved_key = "";
-        CustomECKeySpec customECKeySpec = gson.fromJson(saved_key, CustomECKeySpec.class);
-        PrivateKey privateKey = keyFactory.generatePrivate(customECKeySpec.getPrivateKeySpec());
-        PublicKey publicKey =  keyFactory.generatePublic(customECKeySpec.getPublicKeySpec());
-        KeyPair keyPair = new KeyPair(publicKey, privateKey);
-        return keyPair;
+        try {
+            KeyFactory keyFactory = KeyFactory.getInstance("EC");
+            CustomECKeySpec customECKeySpec = gson.fromJson(json, CustomECKeySpec.class);
+            PrivateKey privateKey = keyFactory.generatePrivate(customECKeySpec.getPrivateKeySpec());
+            PublicKey publicKey = keyFactory.generatePublic(customECKeySpec.getPublicKeySpec());
+            KeyPair keyPair = new KeyPair(publicKey, privateKey);
+            return keyPair;
+        } catch (Exception e) {
+            KeyPairGenerator keygen = KeyPairGenerator.getInstance("EC");
+            ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
+            keygen.initialize(ecSpec);
+            KeyPair keyPair = keygen.generateKeyPair();
+            if (!Client.createNewAddress(keyPair)) throw new Exception("Error creating keys");
+            String keyPairString = gson.toJson(new CustomECKeySpec(keyPair), CustomECKeySpec.class);
+            SharedPreferences.Editor editor = sharedPref.edit();
+            editor.putString(context.getString(R.string.saved_key), keyPairString);
+            editor.apply();
+            return keyPair;
+        }
     }
 
-    static Boolean createNewAddress(KeyPair ecKeyPair) throws UnknownHostException, IOException, NoSuchAlgorithmException{
+    static Boolean createNewAddress(KeyPair keyPair) throws UnknownHostException, IOException, NoSuchAlgorithmException{
         try(
             Socket client = (Socket) sf.createSocket(SERVER_ADDRESS, SERVER_PORT);
             DataInputStream dis = new DataInputStream(client.getInputStream());
@@ -80,21 +93,20 @@ public class Client {
             so.objectString = gson.toJson(CustomECKeySpec.getPublicKeySpec(keyPair), CustomECKeySpec.class);
     
             // Print the private key.
-            System.out.println("private: " + (new BigInteger(keyPair.getPrivate().getEncoded())).toString(16));
+            //System.out.println("private: " + (new BigInteger(keyPair.getPrivate().getEncoded())).toString(16));
             // Print the public key.
             System.out.println("pub: " + (new BigInteger(keyPair.getPublic().getEncoded())).toString(16));
-            byte[] signature = EthersUtils.signData(so.objectString.getBytes(StandardCharsets.US_ASCII), keyPair.getPrivate());
-    
-            so.signature = signature;
+
+            so.signature = EthersUtils.signData(so.objectString.getBytes(StandardCharsets.US_ASCII), keyPair.getPrivate());
     
             String objectString = gson.toJson(so, SignedObject.class);
     
-            System.out.println(objectString);
+            //System.out.println(objectString);
 
             dos.write(Tools.combine("0200".getBytes(StandardCharsets.UTF_16LE), Tools.data_with_ASCII_byte(objectString).getBytes(StandardCharsets.US_ASCII)));
             String code = Tools.receive_unicode(dis, 8);
-            if (code.equals("0200")) return true;
-            return false;
+            System.out.println("code: " + code);
+            return code.equals("0200");
         }
         catch (Exception e)
         {
@@ -102,7 +114,7 @@ public class Client {
         }
     }
 
-    public static int fetch(KeyPair ecKeyPair, boolean increase){
+    public static int fetch(KeyPair keyPair, boolean increase){
         try ( Socket client = (Socket) sf.createSocket(SERVER_ADDRESS, SERVER_PORT);
             DataInputStream dis = new DataInputStream(client.getInputStream());
             DataOutputStream dos = new DataOutputStream(client.getOutputStream());){
@@ -115,14 +127,16 @@ public class Client {
             so.signature = signature;
     
             String objectString = gson.toJson(so, SignedObject.class);
-            System.out.println(objectString);
+            //System.out.println(objectString);
 
             dos.write(Tools.combine("0001".getBytes(StandardCharsets.UTF_16LE), Tools.data_with_ASCII_byte(objectString).getBytes(StandardCharsets.US_ASCII)));
             String code = Tools.receive_unicode(dis, 8);
             String result = Tools.receive_ASCII_Automatically(dis);
 
+
             num = Integer.parseInt(result); // comment this if error, and uncomment the line below
             // if (increase) num = num + 1;
+            System.out.println("code:" + code + " " + num);
             return num;
         }
         catch (Exception e){
@@ -131,7 +145,7 @@ public class Client {
         }
     }
 
-    public static Boolean addVirus(KeyPair ecKeyPair, Virus virus){
+    public static Boolean addVirus(KeyPair keyPair, Virus virus){
         try (
             Socket client = (Socket) sf.createSocket(SERVER_ADDRESS, SERVER_PORT);
             DataInputStream dis = new DataInputStream(client.getInputStream());
@@ -143,22 +157,22 @@ public class Client {
             // objectify virus
             so.objectString = gson.toJson(virus, Virus.class);
 
-            byte[] signature = EthersUtils.signData(so.objectString.getBytes(StandardCharsets.US_ASCII), keyPair.getPrivate());
-            so.signature = signature;
+            so.signature = EthersUtils.signData(so.objectString.getBytes(StandardCharsets.US_ASCII), keyPair.getPrivate());
 
             String objectString = gson.toJson(so, SignedObject.class);
 
             dos.write(Tools.combine("0002".getBytes(StandardCharsets.UTF_16LE), Tools.data_with_ASCII_byte(objectString).getBytes(StandardCharsets.US_ASCII)));
             String code = Tools.receive_unicode(dis, 8);
-            if (code.equals("0002")) return true;
-            return false;
+            System.out.println("code:" + code);
+            return code.equals("0002");
         }
         catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }
 
-    public static Boolean transfer(KeyPair ecKeyPair, String receiverPublicKey, long value){
+    public static Boolean transfer(KeyPair keyPair, String receiverPublicKey, long value){
         try (Socket client = (Socket) sf.createSocket(SERVER_ADDRESS, SERVER_PORT);
         DataInputStream dis = new DataInputStream(client.getInputStream());
         DataOutputStream dos = new DataOutputStream(client.getOutputStream());) {
@@ -167,20 +181,19 @@ public class Client {
             SignedObject so = new SignedObject();
             Transfer transfer = new Transfer();
             transfer.senderPublicKey = CustomECKeySpec.getPublicKeySpec(keyPair);
-            transfer.receiverPublicKey = gson.fromJson(receiverPublicKey, BigInteger.class);
+            transfer.receiverPublicBigInt = gson.fromJson(receiverPublicKey, BigInteger.class);
             transfer.value = value;
             so.objectString = gson.toJson(transfer, Transfer.class);
-    
-            byte[] signature = EthersUtils.signData(so.objectString.getBytes(StandardCharsets.US_ASCII), keyPair.getPrivate());
-            so.signature = signature;
+
+            so.signature = EthersUtils.signData(so.objectString.getBytes(StandardCharsets.US_ASCII), keyPair.getPrivate());
     
             String objectString = gson.toJson(so, SignedObject.class);
-            System.out.println(objectString);
+            //System.out.println(objectString);
 
             dos.write(Tools.combine("0003".getBytes(StandardCharsets.UTF_16LE), Tools.data_with_ASCII_byte(objectString).getBytes(StandardCharsets.US_ASCII)));
             String code = Tools.receive_unicode(dis, 8);
-            if (code.equals("0003")) return true;
-            return false;
+            System.out.println("code:" + code);
+            return code.equals("0003");
         }
         catch (Exception e){
             return false;

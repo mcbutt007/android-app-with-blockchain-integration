@@ -16,6 +16,6 @@ public class JobBigInt implements Runnable {
     @Override
     public void run() {
         // update coins
-        valueTextView.setText(value.toString());
+        valueTextView.setText(value.toString(16));
     }
 }
