@@ -6,7 +6,7 @@ public class Job implements Runnable {
     TextView valueTextView;
     int value;
 
-    Job(TextView textView, int value){
+    public Job(TextView textView, int value){
         this.valueTextView = textView;
         this.value = value;
     }

@@ -1,6 +1,10 @@
 package com.example.virusdetection.ui.home;
 
+import static androidx.core.content.ContextCompat.getSystemService;
+
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -18,6 +22,7 @@ import com.example.virusdetection.R;
 import com.example.virusdetection.databinding.FragmentHomeBinding;
 import com.example.virusdetection.utils.Client;
 import com.example.virusdetection.utils.CustomECKeySpec;
+import com.example.virusdetection.utils.Scanner;
 import com.example.virusdetection.utils.Tools;
 import com.example.virusdetection.utils.Tools.*;
 import com.example.virusdetection.utils.Virus;
@@ -49,6 +54,7 @@ public class HomeFragment extends Fragment {
         View root = binding.getRoot();
 
         Button addButton = binding.scanButton;
+        Button copyButton = binding.button;
         final TextView valueTextView = binding.virusPoint;
         final TextView valueKey = binding.key;
         Activity activity = this.getActivity();
@@ -76,39 +82,26 @@ public class HomeFragment extends Fragment {
         addButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        SecureRandom rand = new SecureRandom();
-                        int rand_int = rand.nextInt(10000);
-                        System.out.println(rand_int);
-                        if (rand_int > 1907) return;
-
-                        int virusRandom = rand.nextInt();
-
-                        KeyPair key = null;
-                        try {
-                            key = Client.getKey(activity);
-
-                            Virus virus = new Virus();
-                            virus.publicKey = CustomECKeySpec.getPublicKeySpec(key);
-                            virus.virusSignature = String.valueOf(virusRandom);
-
-                            Boolean b = Client.addVirus(key, virus);
-
-                            // if (!b) return;
-                            //Client.num += 1;
-                            int coins = Client.fetch(key, false);
-                            // write coins to UI in UI thread
-                            activity.runOnUiThread(new Job(valueTextView, coins));
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-        
-                });
+                try {
+                    Scanner.activate(activity, valueKey, valueTextView);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         });
+
+        copyButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                try{
+                    ClipboardManager clipboardManager = getSystemService(getContext(), ClipboardManager.class);
+                    ClipData clip = ClipData.newPlainText("label", valueKey.getText());
+                    clipboardManager.setPrimaryClip(clip);
+                }
+                catch(Exception ignore){}
+            }
+                                      }
+        );
 
         final TextView textView = binding.textHome;
         homeViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);

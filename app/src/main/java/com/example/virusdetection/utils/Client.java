@@ -33,7 +33,7 @@ import java.security.spec.X509EncodedKeySpec;
 
 public class Client {
     public static final String SERVER_ADDRESS = "0.tcp.ap.ngrok.io";
-    public static final int SERVER_PORT = 10489;
+    public static final int SERVER_PORT = 17404;
     
     public static SocketFactory sf = (SocketFactory)SocketFactory.getDefault();
     public static Socket client;

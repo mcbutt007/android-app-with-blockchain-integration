@@ -8,7 +8,7 @@ public class JobBigInt implements Runnable {
     TextView valueTextView;
     BigInteger value;
 
-    JobBigInt(TextView textView, BigInteger value){
+    public JobBigInt(TextView textView, BigInteger value){
         this.valueTextView = textView;
         this.value = value;
     }
