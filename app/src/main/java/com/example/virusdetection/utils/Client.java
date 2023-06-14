@@ -47,7 +47,7 @@ public class Client {
         Gson gson = new Gson();
         SharedPreferences sharedPref = context.getPreferences(Context.MODE_PRIVATE);
         String json = sharedPref.getString(context.getString(R.string.saved_key), "");
-        //String json = "";
+        // json = "";
         if (json.equals("")) {
             KeyPairGenerator keygen = KeyPairGenerator.getInstance("EC");
             ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256r1");
@@ -181,22 +181,26 @@ public class Client {
             Gson gson = new Gson();
             SignedObject so = new SignedObject();
             Transfer transfer = new Transfer();
+            BigInteger receiverBigInt = new BigInteger(receiverPublicKey, 16);
             transfer.senderPublicKey = CustomECKeySpec.getPublicKeySpec(keyPair);
-            transfer.receiverPublicBigInt = gson.fromJson(receiverPublicKey, BigInteger.class);
+            transfer.receiverPublicBigInt = receiverBigInt;
             transfer.value = value;
             so.objectString = gson.toJson(transfer, Transfer.class);
 
             so.signature = EthersUtils.signData(so.objectString.getBytes(StandardCharsets.US_ASCII), keyPair.getPrivate());
-    
+
             String objectString = gson.toJson(so, SignedObject.class);
             //System.out.println(objectString);
 
             dos.write(Tools.combine("0003".getBytes(StandardCharsets.UTF_16LE), Tools.data_with_ASCII_byte(objectString).getBytes(StandardCharsets.US_ASCII)));
             String code = Tools.receive_unicode(dis, 8);
             System.out.println("code:" + code);
-            return code.equals("0003");
+            String code2 = Tools.receive_ASCII_Automatically(dis);
+            System.out.println("code2: " + code2);
+            return code2.equals("0");
         }
         catch (Exception e){
+            e.printStackTrace();
             return false;
         }
     }
