@@ -32,8 +32,8 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
 public class Client {
-    public static final String SERVER_ADDRESS = "0.tcp.ap.ngrok.io";
-    public static final int SERVER_PORT = 17404;
+    public static final String SERVER_ADDRESS = "192.168.42.85";
+    public static final int SERVER_PORT = 4001;
     
     public static SocketFactory sf = (SocketFactory)SocketFactory.getDefault();
     public static Socket client;
@@ -110,6 +110,7 @@ public class Client {
         }
         catch (Exception e)
         {
+            e.printStackTrace();
             return false;
         }
     }

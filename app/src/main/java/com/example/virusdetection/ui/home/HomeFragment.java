@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -26,6 +27,7 @@ import com.example.virusdetection.utils.Scanner;
 import com.example.virusdetection.utils.Tools;
 import com.example.virusdetection.utils.Tools.*;
 import com.example.virusdetection.utils.Virus;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 
 import java.io.IOException;
@@ -49,9 +51,10 @@ public class HomeFragment extends Fragment {
                              ViewGroup container, Bundle savedInstanceState) {
         HomeViewModel homeViewModel =
                 new ViewModelProvider(this).get(HomeViewModel.class);
-
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
+
+
 
         Button addButton = binding.scanButton;
         Button copyButton = binding.button;
@@ -94,9 +97,7 @@ public class HomeFragment extends Fragment {
             @Override
             public void onClick(View v){
                 try{
-                    ClipboardManager clipboardManager = getSystemService(getContext(), ClipboardManager.class);
-                    ClipData clip = ClipData.newPlainText("label", valueKey.getText());
-                    clipboardManager.setPrimaryClip(clip);
+                    copyToClipboard(valueKey.getText().toString());
                 }
                 catch(Exception ignore){}
             }
@@ -112,5 +113,12 @@ public class HomeFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
+    }
+    private void copyToClipboard(String text) {
+        ClipboardManager clipboardManager = (ClipboardManager) requireActivity().getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clipData = ClipData.newPlainText("key", text);
+        clipboardManager.setPrimaryClip(clipData);
+
+        Toast.makeText(requireContext(), "Key copied to clipboard", Toast.LENGTH_SHORT).show();
     }
 }
